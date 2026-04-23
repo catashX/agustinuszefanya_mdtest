@@ -20,6 +20,7 @@ class MockGetCurrentUserUseCase extends Mock implements GetCurrentUserUseCase {}
 class MockGoogleSignInUseCase extends Mock implements GoogleSignInUseCase {}
 
 class FakeLoginParams extends Fake implements LoginParams {}
+class FakeNoParams extends Fake implements NoParams {}
 
 void main() {
   late AuthBloc bloc;
@@ -34,6 +35,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(FakeLoginParams());
+    registerFallbackValue(FakeNoParams());
   });
 
   setUp(() {
@@ -94,6 +96,34 @@ void main() {
     expect: () => [
       AuthLoading(),
       const AuthError('Server Error'),
+    ],
+  );
+
+  blocTest<AuthBloc, AuthState>(
+    'should emit [AuthLoading, Authenticated] when GoogleSignInRequested is successful',
+    build: () {
+      when(() => mockGoogleSignInUseCase(NoParams()))
+          .thenAnswer((_) async => const Right(tUser));
+      return bloc;
+    },
+    act: (bloc) => bloc.add(GoogleSignInRequested()),
+    expect: () => [
+      AuthLoading(),
+      const Authenticated(tUser),
+    ],
+  );
+
+  blocTest<AuthBloc, AuthState>(
+    'should emit [AuthLoading, AuthError] when GoogleSignInRequested fails',
+    build: () {
+      when(() => mockGoogleSignInUseCase(NoParams()))
+          .thenAnswer((_) async => const Left(AuthFailure('Google Sign-In failed')));
+      return bloc;
+    },
+    act: (bloc) => bloc.add(GoogleSignInRequested()),
+    expect: () => [
+      AuthLoading(),
+      const AuthError('Google Sign-In failed'),
     ],
   );
 }

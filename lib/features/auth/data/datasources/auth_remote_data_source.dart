@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/errors/exceptions.dart';
@@ -26,6 +27,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required this.firestore,
     required this.googleSignInInstance,
   });
+
+  bool _googleSignInInitialized = false;
+
+  Future<void> _ensureGoogleSignInInitialized() async {
+    if (!_googleSignInInitialized) {
+      String? clientId;
+      if (kIsWeb) {
+        clientId = '177641639958-eg9c2br975rhrd6aojubgucc2ohl6arv.apps.googleusercontent.com';
+      } else if (defaultTargetPlatform == TargetPlatform.android) {
+        clientId = '177641639958-eg9c2br975rhrd6aojubgucc2ohl6arv.apps.googleusercontent.com';
+      } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+        clientId = '177641639958-tniqtdgkmr5k3ceh3et6im0fhg6sbf1n.apps.googleusercontent.com';
+      }
+
+      try {
+        await googleSignInInstance.initialize(clientId: clientId);
+        _googleSignInInitialized = true;
+      } catch (e) {
+        debugPrint('Google Sign-In initialization error: $e');
+      }
+    }
+  }
 
   @override
   Future<bool> checkVerificationStatus() async {
@@ -147,10 +170,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> googleSignIn() async {
     try {
-      // Note: In this version of the package, we use authenticate()
-      // and authorizationClient to get the token.
+      await _ensureGoogleSignInInitialized();
+      
+      // Use the new API: authenticate() returns a GoogleSignInAccount
       final account = await googleSignInInstance.authenticate();
 
+      // Get the authorization headers to extract the access token
       final headers = await account.authorizationClient.authorizationHeaders([
         'email',
         'profile',
@@ -163,6 +188,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw AuthException('Failed to obtain access token from Google');
       }
 
+      // Sign in to Firebase with the access token
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: accessToken,
       );
