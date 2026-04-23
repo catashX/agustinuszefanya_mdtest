@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "177641639958",
+    "project_id": "fanintektechtest",
+    "storage_bucket": "fanintektechtest.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:177641639958:android:17ea71025b7bda77fe2537",
+        "android_client_info": {
+          "package_name": "com.fanintek.agustinuszefanya.agustinuszefanya_mdtest"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "177641639958-eg9c2br975rhrd6aojubgucc2ohl6arv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAU5A3dmspaZJ8dGXYJaWdepzM7EiFcGI4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "177641639958-eg9c2br975rhrd6aojubgucc2ohl6arv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "177641639958-tniqtdgkmr5k3ceh3et6im0fhg6sbf1n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.fanintek.agustinuszefanya.agustinuszefanyaMdtest"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
