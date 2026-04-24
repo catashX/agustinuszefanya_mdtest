@@ -17,14 +17,27 @@ class HomePage extends StatelessWidget {
     return BlocProvider(
       create: (_) => sl<HomeBloc>()..add(FetchUsers()),
       child: Scaffold(
+        backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          title: const Text('Home'),
+          elevation: 0,
+          backgroundColor: Colors.white,
+          title: const Text(
+            'Community',
+            style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 24),
+          ),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
-              onPressed: () {
-                context.read<AuthBloc>().add(LogoutRequested());
-              },
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.logout, color: Colors.redAccent),
+                onPressed: () {
+                  context.read<AuthBloc>().add(LogoutRequested());
+                },
+              ),
             )
           ],
         ),
@@ -40,7 +53,6 @@ class HomePage extends StatelessWidget {
           child: Column(
             children: [
               _buildUserInfo(),
-              const Divider(),
               _buildSearchAndFilter(),
               Expanded(
                 child: _buildUserList(),
@@ -56,40 +68,111 @@ class HomePage extends StatelessWidget {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         if (state is Authenticated) {
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
+          final user = state.user;
+          return Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blueAccent.withOpacity(0.3),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Welcome, ${state.user.name}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
                 Row(
                   children: [
-                    Text('Status: ', style: const TextStyle(fontSize: 16)),
-                    Chip(
-                      label: Text(state.user.isEmailVerified ? 'Verified' : 'Not Verified'),
-                      backgroundColor: state.user.isEmailVerified ? Colors.green.shade100 : Colors.red.shade100,
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: Colors.white24,
+                      child: Text(
+                        user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                        style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Welcome back,',
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                          Text(
+                            user.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: user.isEmailVerified ? Colors.greenAccent.withOpacity(0.2) : Colors.orangeAccent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: user.isEmailVerified ? Colors.greenAccent : Colors.orangeAccent,
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        user.isEmailVerified ? 'Verified' : 'Unverified',
+                        style: TextStyle(
+                          color: user.isEmailVerified ? Colors.greenAccent : Colors.orangeAccent,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                if (!state.user.isEmailVerified) ...[
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(SendVerificationEmailRequested());
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Verification email sent')),
-                      );
-                    },
-                    child: const Text('Resend Verification Email'),
+                if (!user.isEmailVerified) ...[
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            context.read<AuthBloc>().add(SendVerificationEmailRequested());
+                          },
+                          icon: const Icon(Icons.mark_email_unread_outlined, size: 18),
+                          label: const Text('Verify Email'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF2575FC),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      IconButton(
+                        onPressed: () {
+                          context.read<AuthBloc>().add(CheckVerificationStatusRequested());
+                        },
+                        icon: const Icon(Icons.refresh, color: Colors.white),
+                        tooltip: 'Refresh status',
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () {
-                      context.read<AuthBloc>().add(CheckVerificationStatusRequested());
-                    },
-                    child: const Text('Refresh Status'),
-                  ),
-                ]
+                ],
               ],
             ),
           );
@@ -104,46 +187,54 @@ class HomePage extends StatelessWidget {
       builder: (context, state) {
         if (state is HomeLoaded) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Column(
               children: [
-                TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Search by Name or Email',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  onChanged: (value) {
-                    context.read<HomeBloc>().add(SearchUsers(value));
-                  },
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'Search friends...',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      prefixIcon: const Icon(Icons.search, color: Colors.blueAccent),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                    ),
+                    onChanged: (value) {
+                      context.read<HomeBloc>().add(SearchUsers(value));
+                    },
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ChoiceChip(
-                      label: const Text('All'),
-                      selected: state.filterVerified == null,
-                      onSelected: (selected) {
+                const SizedBox(height: 16),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All', state.filterVerified == null, (selected) {
                         if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(null));
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('Verified'),
-                      selected: state.filterVerified == true,
-                      onSelected: (selected) {
+                      }),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Verified', state.filterVerified == true, (selected) {
                         if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(true));
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('Not Verified'),
-                      selected: state.filterVerified == false,
-                      onSelected: (selected) {
+                      }),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Unverified', state.filterVerified == false, (selected) {
                         if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(false));
-                      },
-                    ),
-                  ],
+                      }),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 16),
               ],
             ),
           );
@@ -153,29 +244,110 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  Widget _buildFilterChip(String label, bool isSelected, Function(bool) onSelected) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: onSelected,
+      selectedColor: Colors.blueAccent.withOpacity(0.1),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.blueAccent : Colors.grey[600],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected ? Colors.blueAccent : Colors.grey[200]!,
+        ),
+      ),
+      elevation: 0,
+      pressElevation: 0,
+    );
+  }
+
   Widget _buildUserList() {
     return BlocBuilder<HomeBloc, HomeState>(
       builder: (context, state) {
         if (state is HomeLoading || state is HomeInitial) {
           return const Center(child: CircularProgressIndicator());
         } else if (state is HomeError) {
-          return Center(child: Text(state.message));
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                Text(state.message, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+          );
         } else if (state is HomeLoaded) {
           final users = state.displayedUsers;
           if (users.isEmpty) {
-            return const Center(child: Text('No users found.'));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_search_outlined, size: 64, color: Colors.grey[300]),
+                  const SizedBox(height: 16),
+                  const Text('No users found.', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                ],
+              ),
+            );
           }
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: users.length,
             itemBuilder: (context, index) {
               final user = users[index];
-              return ListTile(
-                leading: CircleAvatar(child: Text(user.name.substring(0, 1).toUpperCase())),
-                title: Text(user.name),
-                subtitle: Text(user.email),
-                trailing: Icon(
-                  user.isEmailVerified ? Icons.check_circle : Icons.cancel,
-                  color: user.isEmailVerified ? Colors.green : Colors.red,
+              // Filter out users with placeholder data if needed, but let's just show them styled
+              if (user.name == '-' || user.name.isEmpty) {
+                return const SizedBox.shrink(); 
+              }
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.blueAccent.withOpacity(0.1),
+                    child: Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.blueAccent, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  title: Text(
+                    user.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  subtitle: Text(
+                    user.email,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: user.isEmailVerified ? Colors.green[50] : Colors.grey[50],
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      user.isEmailVerified ? Icons.check_circle : Icons.help_outline,
+                      color: user.isEmailVerified ? Colors.green : Colors.grey[400],
+                      size: 20,
+                    ),
+                  ),
                 ),
               );
             },

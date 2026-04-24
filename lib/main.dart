@@ -8,6 +8,7 @@ import 'features/auth/presentation/bloc/auth_state.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/home/presentation/pages/home_page.dart';
 
+import 'core/bloc/simple_bloc_observer.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -23,6 +24,8 @@ void main() async {
   }
 
   await di.init();
+
+  Bloc.observer = SimpleBlocObserver();
 
   runApp(const MyApp());
 }

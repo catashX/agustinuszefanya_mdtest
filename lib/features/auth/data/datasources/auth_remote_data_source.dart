@@ -75,16 +75,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> login(String email, String password) async {
     try {
+      debugPrint('AuthRemoteDataSource: Attempting login for $email');
       final userCredential = await firebaseAuth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       final user = userCredential.user;
       if (user != null) {
+        debugPrint('AuthRemoteDataSource: Firebase login success: ${user.uid}');
         final doc = await firestore.collection('users').doc(user.uid).get();
         if (doc.exists) {
+          debugPrint('AuthRemoteDataSource: Firestore user data found');
           return UserModel.fromFirestore(doc);
         } else {
+          debugPrint('AuthRemoteDataSource: Firestore user data NOT found, using fallback');
           // Fallback if user document does not exist for some reason
           return UserModel(
             id: user.uid,
@@ -96,8 +100,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
       throw AuthException('Failed to login');
     } on FirebaseAuthException catch (e) {
+      debugPrint('AuthRemoteDataSource: FirebaseAuthException during login: ${e.code} - ${e.message}');
       throw AuthException(e.message ?? 'An error occurred during login');
     } catch (e) {
+      debugPrint('AuthRemoteDataSource: Unexpected error during login: $e');
       throw ServerException(e.toString());
     }
   }
@@ -111,14 +117,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> register(String name, String email, String password) async {
     try {
+      debugPrint('AuthRemoteDataSource: Attempting register for $email');
       final userCredential = await firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
       final user = userCredential.user;
       if (user != null) {
+        debugPrint('AuthRemoteDataSource: Firebase register success: ${user.uid}');
         await user.updateDisplayName(name);
         await user.sendEmailVerification();
+        debugPrint('AuthRemoteDataSource: Display name updated and verification email sent');
         
         final userModel = UserModel(
           id: user.uid,
@@ -130,12 +139,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         );
         
         await firestore.collection('users').doc(user.uid).set(userModel.toJson());
+        debugPrint('AuthRemoteDataSource: User data saved to Firestore');
         return userModel;
       }
       throw AuthException('Failed to register');
     } on FirebaseAuthException catch (e) {
+      debugPrint('AuthRemoteDataSource: FirebaseAuthException during registration: ${e.code} - ${e.message}');
       throw AuthException(e.message ?? 'An error occurred during registration');
     } catch (e) {
+      debugPrint('AuthRemoteDataSource: Unexpected error during registration: $e');
       throw ServerException(e.toString());
     }
   }

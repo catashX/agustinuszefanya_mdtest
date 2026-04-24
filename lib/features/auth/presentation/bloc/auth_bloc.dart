@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/usecase/usecase.dart';
 import '../../domain/usecases/auth_usecases.dart';
@@ -35,20 +36,34 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLoginRequested(LoginRequested event, Emitter<AuthState> emit) async {
+    debugPrint('AuthBloc: LoginRequested for ${event.email}');
     emit(AuthLoading());
     final result = await loginUseCase(LoginParams(email: event.email, password: event.password));
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) => emit(Authenticated(user)),
+      (failure) {
+        debugPrint('AuthBloc: Login Failed: ${failure.message}');
+        emit(AuthError(failure.message));
+      },
+      (user) {
+        debugPrint('AuthBloc: Login Success: ${user.email}');
+        emit(Authenticated(user));
+      },
     );
   }
 
   Future<void> _onRegisterRequested(RegisterRequested event, Emitter<AuthState> emit) async {
+    debugPrint('AuthBloc: RegisterRequested for ${event.email}');
     emit(AuthLoading());
     final result = await registerUseCase(RegisterParams(name: event.name, email: event.email, password: event.password));
     result.fold(
-      (failure) => emit(AuthError(failure.message)),
-      (user) => emit(Authenticated(user)),
+      (failure) {
+        debugPrint('AuthBloc: Register Failed: ${failure.message}');
+        emit(AuthError(failure.message));
+      },
+      (user) {
+        debugPrint('AuthBloc: Register Success: ${user.email}');
+        emit(Authenticated(user));
+      },
     );
   }
 
@@ -95,14 +110,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onCheckAuthStatusRequested(CheckAuthStatusRequested event, Emitter<AuthState> emit) async {
+    debugPrint('AuthBloc: CheckAuthStatusRequested');
     emit(AuthLoading());
     final result = await getCurrentUserUseCase(NoParams());
     result.fold(
-      (failure) => emit(Unauthenticated()),
+      (failure) {
+        debugPrint('AuthBloc: CheckAuthStatus Failed: ${failure.message}');
+        emit(Unauthenticated());
+      },
       (user) {
         if (user != null) {
+          debugPrint('AuthBloc: CheckAuthStatus - Authenticated: ${user.email}');
           emit(Authenticated(user));
         } else {
+          debugPrint('AuthBloc: CheckAuthStatus - Unauthenticated');
           emit(Unauthenticated());
         }
       },
