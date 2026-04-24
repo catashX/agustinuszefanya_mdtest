@@ -219,22 +219,37 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', state.filterVerified == null, (selected) {
-                        if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(null));
-                      }),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Verified', state.filterVerified == true, (selected) {
-                        if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(true));
-                      }),
-                      const SizedBox(width: 8),
-                      _buildFilterChip('Unverified', state.filterVerified == false, (selected) {
-                        if (selected) context.read<HomeBloc>().add(const FilterUsersByStatus(false));
-                      }),
+                SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<bool?>(
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      selectedBackgroundColor: Colors.blueAccent,
+                      selectedForegroundColor: Colors.white,
+                      foregroundColor: Colors.grey[600],
+                      side: BorderSide(color: Colors.grey[200]!, width: 1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    segments: const [
+                      ButtonSegment<bool?>(
+                        value: null,
+                        label: Text('All', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      ButtonSegment<bool?>(
+                        value: true,
+                        label: Text('Verified', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      ButtonSegment<bool?>(
+                        value: false,
+                        label: Text('Unverified', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
                     ],
+                    selected: {state.filterVerified},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (Set<bool?> newSelection) {
+                      context.read<HomeBloc>().add(FilterUsersByStatus(newSelection.first));
+                    },
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -247,46 +262,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected, Function(bool) onSelected) {
-    return GestureDetector(
-      onTap: () => onSelected(!isSelected),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blueAccent : Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.blueAccent.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  )
-                ],
-          border: Border.all(
-            color: isSelected ? Colors.blueAccent : Colors.grey[100]!,
-            width: 1,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.grey[600],
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            fontSize: 14,
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildUserList() {
     return BlocBuilder<HomeBloc, HomeState>(
