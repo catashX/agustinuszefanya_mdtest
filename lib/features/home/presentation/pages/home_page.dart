@@ -48,6 +48,9 @@ class HomePage extends StatelessWidget {
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
               );
+            } else if (state is Authenticated) {
+              // Re-fetch users to sync with the latest verification status from Firestore
+              context.read<HomeBloc>().add(FetchUsers());
             }
           },
           child: Column(
@@ -245,24 +248,43 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildFilterChip(String label, bool isSelected, Function(bool) onSelected) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: onSelected,
-      selectedColor: Colors.blueAccent.withOpacity(0.1),
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.blueAccent : Colors.grey[600],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-      ),
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: isSelected ? Colors.blueAccent : Colors.grey[200]!,
+    return GestureDetector(
+      onTap: () => onSelected(!isSelected),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blueAccent : Colors.white,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.blueAccent.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ],
+          border: Border.all(
+            color: isSelected ? Colors.blueAccent : Colors.grey[100]!,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[600],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
         ),
       ),
-      elevation: 0,
-      pressElevation: 0,
     );
   }
 

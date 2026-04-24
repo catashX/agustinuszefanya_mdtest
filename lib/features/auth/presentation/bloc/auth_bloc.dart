@@ -94,9 +94,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         (isVerified) {
           // If verified status changed, emit new state
           if (currentUser.isEmailVerified != isVerified) {
-            // Note: In a real app we might want to update the local db/state
-            // or re-fetch the user profile. But for simplicity we just emit
-            emit(Authenticated(currentUser)); // Ideally we update the UserEntity too
+            emit(Authenticated(currentUser.copyWith(isEmailVerified: isVerified)));
           }
         },
       );

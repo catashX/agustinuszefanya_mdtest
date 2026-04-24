@@ -30,10 +30,30 @@ class UserModel extends UserEntity {
     return UserModel.fromJson(doc.data() ?? {}, id: doc.id);
   }
 
+  @override
+  UserModel copyWith({
+    String? id,
+    String? email,
+    String? name,
+    bool? isEmailVerified,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      isEmailVerified: isEmailVerified ?? this.isEmailVerified,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   Map<String, dynamic> toJson({bool isUpdate = false}) {
     final data = <String, dynamic>{
       'user_name': name,
       'user_email': email,
+      'isEmailVerified': isEmailVerified,
       'user_updated_at': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
     };
     

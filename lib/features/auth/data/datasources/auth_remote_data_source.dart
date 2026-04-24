@@ -42,10 +42,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
 
       try {
+        debugPrint('AuthRemoteDataSource: Initializing Google Sign-In with clientId: $clientId');
         await googleSignInInstance.initialize(clientId: clientId);
         _googleSignInInitialized = true;
+        debugPrint('AuthRemoteDataSource: Google Sign-In initialized successfully');
       } catch (e) {
-        debugPrint('Google Sign-In initialization error: $e');
+        debugPrint('AuthRemoteDataSource: Google Sign-In initialization error: $e');
+        // Don't rethrow here, let the authenticate() call fail if it must
       }
     }
   }
@@ -55,7 +58,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     final user = firebaseAuth.currentUser;
     if (user != null) {
       await user.reload();
-      return user.emailVerified;
+      final isVerified = firebaseAuth.currentUser?.emailVerified ?? false;
+      if (isVerified) {
+        await firestore.collection('users').doc(user.uid).update({
+          'isEmailVerified': true,
+          'user_updated_at': FieldValue.serverTimestamp(),
+        });
+      }
+      return isVerified;
     }
     throw AuthException('No user logged in');
   }
@@ -86,7 +96,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         final doc = await firestore.collection('users').doc(user.uid).get();
         if (doc.exists) {
           debugPrint('AuthRemoteDataSource: Firestore user data found');
-          return UserModel.fromFirestore(doc);
+          final userModel = UserModel.fromFirestore(doc);
+          
+          // Sync verification status to Firestore if Firebase says verified but Firestore doesn't
+          if (user.emailVerified && !userModel.isEmailVerified) {
+            debugPrint('AuthRemoteDataSource: Syncing verification status to Firestore');
+            await firestore.collection('users').doc(user.uid).update({
+              'isEmailVerified': true,
+              'user_updated_at': FieldValue.serverTimestamp(),
+            });
+            return userModel.copyWith(isEmailVerified: true);
+          }
+          
+          return userModel;
         } else {
           debugPrint('AuthRemoteDataSource: Firestore user data NOT found, using fallback');
           // Fallback if user document does not exist for some reason
@@ -185,8 +207,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       await _ensureGoogleSignInInitialized();
       
       // Use the new API: authenticate() returns a GoogleSignInAccount
+      debugPrint('AuthRemoteDataSource: Calling googleSignInInstance.authenticate()');
       final account = await googleSignInInstance.authenticate();
 
+      if (account == null) {
+        debugPrint('AuthRemoteDataSource: Google Sign-In canceled by user (account is null)');
+        throw AuthException('Google Sign-In was canceled');
+      }
+
+      debugPrint('AuthRemoteDataSource: Obtaining authorization headers');
       // Get the authorization headers to extract the access token
       final headers = await account.authorizationClient.authorizationHeaders([
         'email',
@@ -195,6 +224,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       ]);
       
       final accessToken = headers?['Authorization']?.split(' ').last;
+      debugPrint('AuthRemoteDataSource: Access token obtained: ${accessToken != null ? "Yes" : "No"}');
 
       if (accessToken == null) {
         throw AuthException('Failed to obtain access token from Google');
@@ -205,6 +235,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         accessToken: accessToken,
       );
 
+      debugPrint('AuthRemoteDataSource: Signing in to Firebase with credential');
       final UserCredential userCredential = await firebaseAuth.signInWithCredential(credential);
       final User? user = userCredential.user;
 
@@ -228,8 +259,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       }
       throw AuthException('Failed to sign in with Google');
     } on FirebaseAuthException catch (e) {
+      debugPrint('AuthRemoteDataSource: FirebaseAuthException during Google Sign-In: ${e.code} - ${e.message}');
       throw AuthException(e.message ?? 'An error occurred during Google Sign-In');
     } catch (e) {
+      debugPrint('AuthRemoteDataSource: Unexpected error during Google Sign-In: $e');
       if (e is AuthException) rethrow;
       throw ServerException(e.toString());
     }

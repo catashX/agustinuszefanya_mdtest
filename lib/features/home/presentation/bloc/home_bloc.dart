@@ -15,11 +15,32 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   Future<void> _onFetchUsers(FetchUsers event, Emitter<HomeState> emit) async {
+    final currentState = state;
+    String? currentQuery;
+    bool? currentFilter;
+
+    if (currentState is HomeLoaded) {
+      currentQuery = currentState.searchQuery;
+      currentFilter = currentState.filterVerified;
+    }
+
     emit(HomeLoading());
     final result = await getUsersUseCase(NoParams());
     result.fold(
       (failure) => emit(HomeError(failure.message)),
-      (users) => emit(HomeLoaded(allUsers: users, displayedUsers: users)),
+      (users) {
+        if (currentQuery != null || currentFilter != null) {
+          final filtered = _applyFilters(users, currentQuery ?? '', currentFilter);
+          emit(HomeLoaded(
+            allUsers: users,
+            displayedUsers: filtered,
+            searchQuery: currentQuery ?? '',
+            filterVerified: currentFilter,
+          ));
+        } else {
+          emit(HomeLoaded(allUsers: users, displayedUsers: users));
+        }
+      },
     );
   }
 
